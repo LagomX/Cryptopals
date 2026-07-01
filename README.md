@@ -42,3 +42,4 @@ src/
 
 - src/lib.rs：可复用的编码和加密函数
 - src/bin/：每个可执行 Challenge 的入口
+```
