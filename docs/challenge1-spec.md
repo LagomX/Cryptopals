@@ -1,141 +1,179 @@
-# Cryptopals Set 1 · Challenge 1 规格文档
+# Cryptopals Set 1 · Challenge 1 Specification
 
-> 目标：照着这份文档，自己从零写出程序。不要抄现有的 `main.rs`，卡住了再回去看。
-
----
-
-## 一、要解决的问题
-
-把一段**十六进制文字**转换成 **Base64 文字**。
-
-- 输入（hex 字符串）：
-  ```
-  49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d
-  ```
-- 期望输出（Base64 字符串）：
-  ```
-  SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t
-  ```
-
-## 二、核心思路（回忆）
-
-输入不是「数」，是「文字」。流程分两步，中间是「一串字节」：
-
-```
-hex 文字  ──(解析 parse)──►  一串字节 Vec<u8>  ──(编码 encode)──►  Base64 文字
-```
-
-- 1 个 hex 字符 = 4 bit（半个字节），**2 个 hex 字符拼 1 个字节**。
-- 1 个 Base64 字符 = 6 bit，**3 个字节（24 bit）编码成 4 个 Base64 字符**。
+> Goal: Use this document to write the program yourself from scratch. Do not
+> copy the existing implementation; return to it only when you get stuck.
 
 ---
 
-## 三、你要写的函数（4 个）
+## 1. The Problem
 
-### 1. `fn hex_digit(c: u8) -> u8`
+Convert a piece of **hexadecimal text** into **Base64 text**.
 
-**职责**：把单个 hex 字符的字节值，翻译成它的数值（0~15）。
+Input—a hex string:
 
-**输入**：一个字节，是某个 hex 字符的 ASCII 值（比如字符 `'4'` 传进来是 `52`）。
-**输出**：0~15 的数值。
+```text
+49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d
+```
 
-**步骤**：
-- 若 `c` 在 `'0'..='9'` 之间 → 返回 `c - '0'的值`。
-- 若 `c` 在 `'a'..='f'` 之间 → 返回 `c - 'a'的值 + 10`。
-- 其它 → 报错（可以 `panic!`）。
+Expected output—a Base64 string:
 
-**提示**：用 `match`；字符的字节字面量写成 `b'0'`、`b'a'`；范围写成 `b'0'..=b'9'`。
+```text
+SSdtIGtpbGxpbmcgeW91ciBicmFpbiBsaWtlIGEgcG9pc29ub3VzIG11c2hyb29t
+```
+
+## 2. Core Idea
+
+The input is text, not a number. The conversion has two stages, with a byte
+sequence in between:
+
+```text
+hex text ──parse──► byte sequence (Vec<u8>) ──encode──► Base64 text
+```
+
+- One hex character represents 4 bits—half a byte—so **two hex characters
+  form one byte**.
+- One Base64 character represents 6 bits, so **three bytes (24 bits) become
+  four Base64 characters**.
 
 ---
 
-### 2. `fn hex_to_bytes(hex: &str) -> Vec<u8>`
+## 3. Functions to Implement
 
-**职责**：把整个 hex 字符串解析成一串字节。
+### 3.1 `fn hex_digit(c: u8) -> u8`
 
-**步骤**：
-1. 建一个空的 `Vec<u8>`（可变）。
-2. 用 `hex.as_bytes()` 拿到底层字节切片，方便按下标取。
-3. 每次跳 **2** 个字符地遍历下标：`(0..长度).step_by(2)`。
-4. 每轮：
-   - `high = hex_digit(第 i 个字符)`
-   - `low  = hex_digit(第 i+1 个字符)`
-   - 拼成一个字节：`(high << 4) | low`
-   - `push` 进 Vec。
-5. 返回这个 Vec。
+**Responsibility:** Convert one ASCII hex character into its numeric value
+from 0 through 15.
 
-**验证点**：`hex_to_bytes("49276d")` 应得到 `[73, 39, 109]`。
+**Input:** A byte containing the ASCII value of a hex character. For example,
+the character `'4'` is passed as `52`.
+
+**Output:** A numeric value from 0 through 15.
+
+**Steps:**
+
+- If `c` is between `'0'` and `'9'`, return `c - value of '0'`.
+- If `c` is between `'a'` and `'f'`, return `c - value of 'a' + 10`.
+- Otherwise, report an error; using `panic!` is sufficient for this challenge.
+
+**Hint:** Use `match`. Byte literals are written as `b'0'` and `b'a'`, while
+an inclusive range is written as `b'0'..=b'9'`.
 
 ---
 
-### 3. `fn bytes_to_base64(bytes: &[u8]) -> String`
+### 3.2 `fn hex_to_bytes(hex: &str) -> Vec<u8>`
 
-**职责**：把一串字节编码成 Base64 文字。
+**Responsibility:** Parse an entire hex string into a byte sequence.
 
-**准备**：一张 64 字符的查找表，下标 0~63 对应一个字符。顺序是：
+**Steps:**
+
+1. Create an empty mutable `Vec<u8>`.
+2. Use `hex.as_bytes()` to access the underlying byte slice by index.
+3. Iterate over the indexes in steps of two with
+   `(0..length).step_by(2)`.
+4. During each iteration:
+   - `high = hex_digit(character at i)`
+   - `low = hex_digit(character at i + 1)`
+   - Combine them into one byte with `(high << 4) | low`.
+   - Push that byte into the vector.
+5. Return the vector.
+
+**Verification point:** `hex_to_bytes("49276d")` should produce
+`[73, 39, 109]`.
+
+---
+
+### 3.3 `fn bytes_to_base64(bytes: &[u8]) -> String`
+
+**Responsibility:** Encode a byte sequence as Base64 text.
+
+**Preparation:** Create a 64-character lookup table. Indexes 0 through 63 map
+to characters in this order:
+
+```text
+A-Z (26 characters), a-z (26 characters), 0-9 (10 characters), +, /
 ```
-A-Z(26个) a-z(26个) 0-9(10个) + /
-```
-提示：用字节串字面量 `b"ABC...+/"`，正好是 `&[u8; 64]`。
 
-**步骤**：建一个空 `String`，然后**每 3 个字节一组**（用 `bytes.chunks(3)`）处理：
-1. 取出这组的 3 个字节 `b0, b1, b2`。若不足 3 个，缺的当 `0`。
-   （注意：取之前要判断 `chunk.len()`，否则下标越界会崩。记得 `as u32`。）
-2. 拼成 24 位：`n = (b0 << 16) | (b1 << 8) | b2`。
-3. 切成 4 个 6 位的值：
+**Hint:** Use a byte string literal such as `b"ABC...+/"`. Its type is
+`&[u8; 64]` when the table contains exactly 64 characters.
+
+**Steps:** Create an empty `String`, then process the input in groups of three
+bytes with `bytes.chunks(3)`:
+
+1. Read the group's bytes as `b0`, `b1`, and `b2`. If fewer than three bytes
+   remain, treat the missing values as `0`.
+   Check `chunk.len()` before indexing to avoid an out-of-bounds panic. Convert
+   each value with `as u32` before shifting.
+2. Combine the three bytes into 24 bits:
+   `n = (b0 << 16) | (b1 << 8) | b2`.
+3. Split those 24 bits into four 6-bit values:
    - `i0 = (n >> 18) & 0b111111`
    - `i1 = (n >> 12) & 0b111111`
-   - `i2 = (n >> 6)  & 0b111111`
-   - `i3 =  n        & 0b111111`
-4. 输出字符：
-   - 前两个一定输出：`table[i0]`、`table[i1]`（记得下标 `as usize`，取出的字节 `as char`）。
-   - 第 3 个：这组字节 ≥ 2 个才输出 `table[i2]`，否则输出 `'='`。
-   - 第 4 个：这组字节 = 3 个才输出 `table[i3]`，否则输出 `'='`。
-5. 返回这个 String。
+   - `i2 = (n >> 6) & 0b111111`
+   - `i3 = n & 0b111111`
+4. Produce the output characters:
+   - Always output `table[i0]` and `table[i1]`.
+   - Output `table[i2]` when the chunk has at least two bytes; otherwise,
+     output `'='`.
+   - Output `table[i3]` when the chunk has three bytes; otherwise, output
+     `'='`.
+   - Convert indexes with `as usize` and table bytes with `as char`.
+5. Return the completed string.
 
-**验证点**：`bytes_to_base64(&[73, 39, 109])` 应得到 `"SSdt"`。
-
----
-
-### 4. `fn main()`
-
-**步骤**：
-1. 把输入 hex 字符串存进变量。
-2. `let bytes = hex_to_bytes(...)`。
-3. `let base64 = bytes_to_base64(&bytes)`。
-4. 打印 `base64`。
-5. （可选）和上面的期望输出做 `==` 比较，打印是否正确。
+**Verification point:** `bytes_to_base64(&[73, 39, 109])` should produce
+`"SSdt"`.
 
 ---
 
-## 四、需要用到的语法速查
+### 3.4 `fn main()`
 
-| 需求 | 写法 |
-|------|------|
-| 可变变量 | `let mut x = ...;` |
-| 空向量 | `Vec::new()` |
-| 向量加元素 | `v.push(x);` |
-| 空字符串 | `String::new()` |
-| 字符串加字符 | `s.push('A');` |
-| 字符串按字节切 | `s.as_bytes()` → `&[u8]` |
-| 按每 n 个分组 | `slice.chunks(n)` |
-| 带步长的范围 | `(0..n).step_by(2)` |
-| 分支匹配 | `match x { 模式 => 值, _ => ... }` |
-| 类型转换 | `x as u32` / `x as usize` / `x as char` |
-| 二进制字面量 | `0b111111` |
-| 字节字面量 | `b'0'` |
-| 字节串字面量 | `b"ABC..."` |
-| 调试打印 | `println!("{:?}", x);` |
+**Steps:**
 
-## 五、怎么跑
+1. Store or read the input hex string.
+2. Call `hex_to_bytes(...)`.
+3. Call `bytes_to_base64(&bytes)`.
+4. Print the Base64 result.
+5. Optionally, compare it with the expected output and print whether it is
+   correct.
 
-在项目目录执行：
+---
+
+## 4. Rust Syntax Reference
+
+| Task | Syntax |
+|------|--------|
+| Declare a mutable variable | `let mut x = ...;` |
+| Create an empty vector | `Vec::new()` |
+| Add an element to a vector | `v.push(x);` |
+| Create an empty string | `String::new()` |
+| Add a character to a string | `s.push('A');` |
+| Access a string as bytes | `s.as_bytes()` → `&[u8]` |
+| Process groups of n items | `slice.chunks(n)` |
+| Iterate with a step | `(0..n).step_by(2)` |
+| Match different cases | `match x { pattern => value, _ => ... }` |
+| Convert a value's type | `x as u32`, `x as usize`, `x as char` |
+| Write a binary literal | `0b111111` |
+| Write a byte literal | `b'0'` |
+| Write a byte string | `b"ABC..."` |
+| Print a debug representation | `println!("{:?}", x);` |
+
+## 5. How to Run It
+
+From the project directory, run:
+
+```bash
+cargo run --bin hex_to_base64
 ```
-cargo run
-```
-看到输出等于第一节的「期望输出」，就成功了。
 
-## 六、如果卡住
+If the output matches the expected result from Section 1, the challenge is
+complete.
 
-- 编译报错先别慌——Rust 的报错通常直接告诉你哪行、怎么改，仔细读。
-- 某个函数写不出来，就先只写它，用「验证点」那组小数据测。
-- 实在卡住，去看现有的 `main.rs`（答案），但先自己试。
+## 6. If You Get Stuck
+
+- Read Rust compiler errors carefully; they usually identify both the location
+  and the nature of the problem.
+- If a function feels too large, implement and verify only one function at a
+  time using the small verification examples above.
+- Check that you are converting hex text into raw bytes before attempting the
+  Base64 encoding.
+- When debugging the final chunk, test inputs containing one, two, and three
+  bytes so you can verify the `=` padding behavior.
