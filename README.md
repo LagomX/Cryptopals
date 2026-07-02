@@ -18,7 +18,7 @@ cargo run --bin hex_to_base64
 
 - [x] Challenge 1：Convert hex to base64
 
-- [ ] Challenge 2：Fixed XOR
+- [x] Challenge 2：Fixed XOR
 
 - [ ] Challenge 3：Single-byte XOR cipher
 
