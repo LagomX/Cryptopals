@@ -100,3 +100,43 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
 
     result
 }
+
+
+pub fn decode_xor(bytes: &[u8]) -> String {
+    let mut result: Vec<u8> = Vec::new();
+    let mut real_key: u8 = 0;
+    let mut best_score = i32::MIN;
+
+    for key in 0u8..=255 {
+        let mut score = 0;
+        for byte in bytes {
+            let decrypted_byte = *byte ^ key;
+            score += score_byte(decrypted_byte);
+        }
+        if score > best_score {
+            best_score = score;
+            real_key = key;
+        }
+    }
+
+    for &byte in bytes {
+        let decrypted_byte = byte ^ real_key;
+        result.push(decrypted_byte);
+    }
+
+    String::from_utf8_lossy(&result).into_owned()
+
+}
+
+
+pub fn score_byte(byte: u8) -> i32 {
+    match byte.to_ascii_lowercase() {
+        b' ' => 13,
+        b'e' | b't' | b'a' | b'o' | b'i' | b'n' => 8,
+        b's' | b'h' | b'r' | b'd' | b'l' | b'u' => 4,
+        b'a'..=b'z' => 2,
+        b'.' | b',' | b'\''| b'!' | b'?' => 1,
+        32..=126 => 0,
+        _ => -20,
+    }
+}
